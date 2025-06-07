@@ -8,7 +8,7 @@ use std::sync::Arc;
 use thiserror::Error;
 use tracing::{debug, info};
 
-use crate::audio_frame::AudioFrame;
+use crate::processing::audio_frame::AudioFrame;
 
 // SNAC decoder needs 4 frames of context for high-quality output
 const SNAC_CONTEXT_FRAMES: usize = 4;

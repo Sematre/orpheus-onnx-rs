@@ -12,13 +12,11 @@ use tracing_subscriber::EnvFilter;
 
 use crate::handler::batch::upload::upload_file;
 use crate::handler::oneshot::generate_speech;
-use crate::snac_processor::SnacProcessor;
+use crate::processing::snac_processor::SnacProcessor;
 
-mod audio;
-mod audio_frame;
 mod handler;
-mod snac_processor;
-mod token_generator;
+mod media;
+mod processing;
 
 // Application state
 #[derive(Clone)]

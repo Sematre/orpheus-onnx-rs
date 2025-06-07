@@ -10,7 +10,7 @@ use futures::{Stream, StreamExt};
 use thiserror::Error;
 use tracing::warn;
 
-use crate::token_generator::TokenError;
+use crate::processing::token_generator::TokenError;
 
 // Token ID calculation: token_number - 10 - (position * 4096)
 // This reverses the encoding: original_id + 10 + (position * 4096) = token_number

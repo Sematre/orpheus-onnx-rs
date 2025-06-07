@@ -15,10 +15,10 @@ use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
 use tracing::{error, info, warn};
 
-use crate::audio::{create_wav_header, create_wav_header_with_size};
-use crate::audio_frame::{AudioFrameError, AudioFrameStream};
-use crate::snac_processor::{ContextualFrameProcessor, SnacError};
-use crate::token_generator::{TokenError, TokenGenerator};
+use crate::media::wav::{create_wav_header, create_wav_header_with_size};
+use crate::processing::audio_frame::{AudioFrameError, AudioFrameStream};
+use crate::processing::snac_processor::{ContextualFrameProcessor, SnacError};
+use crate::processing::token_generator::{TokenError, TokenGenerator};
 use crate::AppState;
 
 // Channel size for backpressure control - prevents memory bloat
