@@ -1,3 +1,4 @@
+use std::path::Path;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -29,11 +30,11 @@ struct AppState {
 
 impl AppState {
     fn from_config(config: Config) -> anyhow::Result<Self> {
-        // Create HTTP client with config
-        let client = reqwest::Client::builder().timeout(Duration::from_secs(config.token_generator.timeout_secs)).build()?;
+        // Create HTTP client with no timeout
+        let client = reqwest::Client::new();
 
-        // Load SNAC processor with configured path
-        let snac_processor = Arc::new(SnacProcessor::new(&config.models.snac_decoder_path)?);
+        // Load SNAC processor with configured path from audio config
+        let snac_processor = Arc::new(SnacProcessor::new(&config.audio.snac_decoder_path)?);
 
         Ok(Self {
             client,
@@ -46,13 +47,19 @@ impl AppState {
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> anyhow::Result<()> {
     // Load configuration
-    let config_path = std::env::var("TTS_CONFIG").unwrap_or_else(|_| "config.toml".to_string());
-    let config = Config::from_file_with_env(&config_path)?;
+    let config_dir = std::env::var("TTS_CONFIG_DIR").unwrap_or_else(|_| "./config".to_string());
+    let config_dir_path: &Path = config_dir.as_ref();
+    let config = Config::from_dir_with_env(config_dir_path)?;
 
     // Initialize logging based on config
     init_logging(&config.logging)?;
 
-    info!("Starting TTS service with config from: {config_path}");
+    info!(
+        "Starting TTS service with config from: \"{}\"",
+        config_dir_path.canonicalize()?.to_str().unwrap_or(&config_dir)
+    );
+
+    println!("{config:#?}");
 
     // Create app state
     let state = AppState::from_config(config.clone())?;

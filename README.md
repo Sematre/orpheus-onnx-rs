@@ -52,6 +52,41 @@ The project includes a default `config.toml` file with sensible defaults. You ca
 
 See `config.toml` for all available options.
 
+```toml
+# Example: Custom provider
+[providers.remote-api]
+api_url = "https://api.example.com/v1/completions"
+api_key = "${API_KEY}"                             # Use environment variable
+timeout_secs = 60
+retry_attempts = 5
+max_context_length = 4096
+
+# Example: Custom multilingual model
+[models.multilingual-v2]
+provider = "local-lm-studio"
+model_string = "custom/multilingual-tts-v2.gguf"
+temperature = 0.7
+stop_sequence = "<|begin_of_text|>"
+description = "Custom multilingual TTS model"
+
+[models.multilingual-v2.voices.alex]
+description = "Neutral, clear, polyglot"
+languages = ["en", "es", "fr", "de"]     # This voice can speak 4 languages
+
+[models.multilingual-v2.voices.yuki]
+description = "Female, soft"
+languages = ["ja", "en"]     # This voice can speak Japanese and English
+
+[models.multilingual-v2.voices.maria]
+description = "Female, warm"
+languages = ["es"]           # This voice only speaks Spanish
+
+[models.multilingual-v2.voices.zhang]
+description = "Male, professional"
+languages = ["zh", "en"]           # Bilingual Mandarin/English voice
+
+```
+
 ### Environment Variables
 
 Override configuration values using environment variables:

@@ -1,0 +1,16 @@
+# Mandarin Model
+[models.orpheus-zh]
+provider = "local-lm-studio"
+id = "lex-au/Orpheus-3b-Chinese-FT-Q8_0.gguf"
+temperature = 0.7
+max_context_length = 8192
+stop_sequence = "<|begin_of_text|>"
+description = "Orpheus 3B Mandarin TTS model"
+
+[models.orpheus-zh.voices."长乐"]
+description = "Female, gentle"
+languages = ["zh"]
+
+[models.orpheus-zh.voices."白芷"]
+description = "Female, clear"
+languages = ["zh"]

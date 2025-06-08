@@ -1,0 +1,20 @@
+# French Model
+[models.orpheus-fr]
+provider = "local-lm-studio"
+id = "lex-au/Orpheus-3b-French-FT-Q8_0.gguf"
+temperature = 0.7
+max_context_length = 8192
+stop_sequence = "<|begin_of_text|>"
+description = "Orpheus 3B French TTS model"
+
+[models.orpheus-fr.voices.pierre]
+description = "Male, sophisticated"
+languages = ["fr"]
+
+[models.orpheus-fr.voices.amelie]
+description = "Female, elegant"
+languages = ["fr"]
+
+[models.orpheus-fr.voices.marie]
+description = "Female, spirited"
+languages = ["fr"]

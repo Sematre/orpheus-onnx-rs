@@ -1,0 +1,16 @@
+# Korean Model
+[models.orpheus-ko]
+provider = "local-lm-studio"
+id = "lex-au/Orpheus-3b-Korean-FT-Q8_0.gguf"
+temperature = 0.7
+max_context_length = 8192
+stop_sequence = "<|begin_of_text|>"
+description = "Orpheus 3B Korean TTS model"
+
+[models.orpheus-ko.voices."유나"]
+description = "Female, melodic"
+languages = ["ko"]
+
+[models.orpheus-ko.voices."준서"]
+description = "Male, confident"
+languages = ["ko"]

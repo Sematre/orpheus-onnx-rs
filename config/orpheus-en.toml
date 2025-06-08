@@ -1,0 +1,40 @@
+# English Model (Original Orpheus)
+[models.orpheus-en]
+provider = "local-lm-studio"
+id = "lex-au/Orpheus-3b-FT-Q8_0.gguf"
+temperature = 0.7
+max_context_length = 8192
+stop_sequence = "<|begin_of_text|>"
+description = "Orpheus 3B English TTS model"
+
+[models.orpheus-en.voices.tara]
+description = "Female, conversational, clear"
+languages = ["en"]
+
+[models.orpheus-en.voices.leah]
+description = "Female, warm, gentle"
+languages = ["en"]
+
+[models.orpheus-en.voices.jess]
+description = "Female, energetic, youthful"
+languages = ["en"]
+
+[models.orpheus-en.voices.leo]
+description = "Male, authoritative, deep"
+languages = ["en"]
+
+[models.orpheus-en.voices.dan]
+description = "Male, friendly, casual"
+languages = ["en"]
+
+[models.orpheus-en.voices.mia]
+description = "Female, professional, articulate"
+languages = ["en"]
+
+[models.orpheus-en.voices.zac]
+description = "Male, enthusiastic, dynamic"
+languages = ["en"]
+
+[models.orpheus-en.voices.zoe]
+description = "Female, calm, soothing"
+languages = ["en"]

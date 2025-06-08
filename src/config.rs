@@ -7,21 +7,17 @@ use std::path::{Path, PathBuf};
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Config {
     pub server: ServerConfig,
-    pub models: ModelConfig,
-    pub token_generator: TokenGeneratorConfig,
     pub audio: AudioConfig,
     pub streaming: StreamingConfig,
     pub logging: LoggingConfig,
     pub api: ApiConfig,
-    pub voices: HashMap<String, VoiceConfig>,
+    pub providers: HashMap<String, ProviderConfig>,
+    pub models: HashMap<String, ModelConfig>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct ServerConfig {
     pub bind_addr: String,
-
-    #[serde(default = "default_workers")]
-    pub workers: usize,
 
     #[serde(default)]
     pub cors: CorsConfig,
@@ -32,94 +28,157 @@ pub struct CorsConfig {
     #[serde(default = "default_true")]
     pub enabled: bool,
 
+    #[serde(default)]
     pub allow_origins: Vec<String>,
+    
+    #[serde(default)]
     pub allow_methods: Vec<String>,
+    
+    #[serde(default)]
     pub allow_headers: Vec<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct ModelConfig {
-    pub snac_decoder_path: PathBuf,
-
-    #[serde(default = "default_true")]
-    pub cache_models: bool,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct TokenGeneratorConfig {
-    pub api_url: String,
-    pub model: String,
-    pub temperature: Option<f32>,
-    pub stop_sequence: String,
-
-    #[serde(default = "default_timeout")]
-    pub timeout_secs: u64,
-
-    #[serde(default = "default_retry_attempts")]
-    pub retry_attempts: u32,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct AudioConfig {
-    pub sample_rate: u32,
-    pub channels: u16,
-    pub bits_per_sample: u16,
-    pub context_frames: usize,
-    pub audio_slice_start: usize,
-    pub audio_slice_end: usize,
+    pub snac_decoder_path: PathBuf,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct StreamingConfig {
     pub channel_buffer_size: usize,
-    pub chunk_size: usize,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct LoggingConfig {
     pub level: String,
     pub format: String,
-    pub file: Option<PathBuf>,
-    pub rotation: String,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct ApiConfig {
     pub max_request_size: String,
     pub request_timeout_secs: u64,
-
-    #[serde(default)]
-    pub rate_limiting: RateLimitConfig,
+    pub default_model: String,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, Default)]
-pub struct RateLimitConfig {
-    pub enabled: bool,
-    pub requests_per_minute: u32,
-    pub burst_size: u32,
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct ProviderConfig {
+    pub api_url: String,
+    
+    #[serde(default)]
+    pub api_key: String,
+    
+    #[serde(default = "default_timeout")]
+    pub timeout_secs: u64,
+    
+    #[serde(default = "default_retry_attempts")]
+    pub retry_attempts: u32,
+    
+    #[serde(default = "default_concurrent_requests")]
+    pub concurrent_requests: u32,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct ModelConfig {
+    pub provider: String,
+    pub id: String,
+    pub temperature: f32,
+    pub max_context_length: u32,
+    pub stop_sequence: String,
+    pub description: String,
+    pub voices: HashMap<String, VoiceConfig>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct VoiceConfig {
     pub description: String,
-    pub custom_temperature: Option<f32>,
+    pub languages: Vec<String>,
 }
 
 // Default value functions for serde
-fn default_workers() -> usize {
-    0
-}
 fn default_true() -> bool {
     true
 }
+
 fn default_timeout() -> u64 {
     30
 }
+
 fn default_retry_attempts() -> u32 {
     3
 }
 
+fn default_concurrent_requests() -> u32 {
+    1
+}
+
 impl Config {
+    /// Load configuration from a directory containing TOML files
+    pub fn from_dir(dir_path: impl AsRef<Path>) -> Result<Self> {
+        let dir_path = dir_path.as_ref();
+        
+        if !dir_path.exists() {
+            anyhow::bail!("Configuration directory not found: {:?}", dir_path);
+        }
+        
+        if !dir_path.is_dir() {
+            anyhow::bail!("Path is not a directory: {:?}", dir_path);
+        }
+
+        // Read all TOML files in alphabetical order
+        let mut toml_files = std::fs::read_dir(dir_path)?
+            .filter_map(|entry| entry.ok())
+            .map(|entry| entry.path())
+            .filter(|path| {
+                path.extension()
+                    .and_then(|ext| ext.to_str())
+                    .map(|ext| ext.eq_ignore_ascii_case("toml"))
+                    .unwrap_or(false)
+            })
+            .collect::<Vec<_>>();
+        
+        toml_files.sort();
+        
+        if toml_files.is_empty() {
+            anyhow::bail!("No TOML files found in directory: {:?}", dir_path);
+        }
+
+        // Start with empty config content
+        let mut merged_content = String::new();
+        
+        // Read and merge all TOML files
+        for file_path in &toml_files {
+            let file_content = std::fs::read_to_string(file_path)
+                .map_err(|e| anyhow::anyhow!("Failed to read {:?}: {}", file_path, e))?;
+            
+            merged_content.push_str(&file_content);
+            merged_content.push('\n');
+        }
+
+        // Parse the merged TOML content
+        let config: Config = toml::from_str(&merged_content)
+            .map_err(|e| anyhow::anyhow!("Failed to parse merged TOML configuration: {}", e))?;
+
+        config.validate()?;
+        Ok(config)
+    }
+
+    /// Load configuration from a directory with environment variable override support
+    pub fn from_dir_with_env(dir_path: impl AsRef<Path>) -> Result<Self> {
+        let mut config = Self::from_dir(dir_path)?;
+
+        // Override with environment variables
+        if let Ok(bind_addr) = std::env::var("TTS_BIND_ADDR") {
+            config.server.bind_addr = bind_addr;
+        }
+
+        if let Ok(log_level) = std::env::var("TTS_LOG_LEVEL") {
+            config.logging.level = log_level;
+        }
+
+        Ok(config)
+    }
+
     /// Load configuration from file
     pub fn from_file(path: impl AsRef<Path>) -> Result<Self> {
         let contents = std::fs::read_to_string(path)?;
@@ -138,10 +197,6 @@ impl Config {
             config.server.bind_addr = bind_addr;
         }
 
-        if let Ok(api_url) = std::env::var("TTS_TOKEN_API_URL") {
-            config.token_generator.api_url = api_url;
-        }
-
         if let Ok(log_level) = std::env::var("TTS_LOG_LEVEL") {
             config.logging.level = log_level;
         }
@@ -151,20 +206,27 @@ impl Config {
 
     /// Validate configuration values
     fn validate(&self) -> Result<()> {
-        // Validate model path exists
-        if !self.models.snac_decoder_path.exists() {
-            anyhow::bail!("SNAC decoder model not found at {:?}", self.models.snac_decoder_path);
-        }
-
-        // Validate audio settings
-        if self.audio.audio_slice_start >= self.audio.audio_slice_end {
-            anyhow::bail!("audio_slice_start must be less than audio_slice_end");
+        // Validate audio model path exists
+        if !self.audio.snac_decoder_path.exists() {
+            anyhow::bail!("SNAC decoder model not found at {:?}", self.audio.snac_decoder_path);
         }
 
         // Validate log level
         let valid_levels = ["trace", "debug", "info", "warn", "error"];
         if !valid_levels.contains(&self.logging.level.as_str()) {
             anyhow::bail!("Invalid log level: {}", self.logging.level);
+        }
+
+        // Validate that the default model exists in models config
+        if !self.models.contains_key(&self.api.default_model) {
+            anyhow::bail!("Default model '{}' not found in models configuration", self.api.default_model);
+        }
+
+        // Validate that each model references a valid provider
+        for (model_name, model_config) in &self.models {
+            if !self.providers.contains_key(&model_config.provider) {
+                anyhow::bail!("Model '{}' references unknown provider '{}'", model_name, model_config.provider);
+            }
         }
 
         Ok(())

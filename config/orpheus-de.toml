@@ -1,0 +1,20 @@
+# German Model
+[models.orpheus-de]
+provider = "local-lm-studio"
+id = "lex-au/Orpheus-3b-German-FT-Q8_0.gguf"
+temperature = 0.7
+max_context_length = 8192
+stop_sequence = "<|begin_of_text|>"
+description = "Orpheus 3B German TTS model"
+
+[models.orpheus-de.voices.jana]
+description = "Female, clear"
+languages = ["de"]
+
+[models.orpheus-de.voices.thomas]
+description = "Male, authoritative"
+languages = ["de"]
+
+[models.orpheus-de.voices.max]
+description = "Male, energetic"
+languages = ["de"]
