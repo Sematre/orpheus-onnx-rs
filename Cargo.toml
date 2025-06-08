@@ -32,8 +32,13 @@ thiserror = "1.0"
 
 # Logging
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+tracing-subscriber = { version = "0.3", features = [
+    "env-filter",
+    "fmt",
+    "json",
+] }
 
 # Utilities
 regex = "1.11"
 uuid = { version = "1.17", features = ["v4"] }
+toml = "0.8.23"
