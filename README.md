@@ -137,7 +137,7 @@ The model outputs tokens in a specific format that encode hierarchical audio inf
 - **ONNX model**: [onnx-community/snac_24khz-ONNX](https://huggingface.co/onnx-community/snac_24khz-ONNX)
 - **Original model**: [hubertsiuzdak/snac_24khz](https://huggingface.co/hubertsiuzdak/snac_24khz)
 - **Model size**: 52.6MB (ONNX decoder)
-- **Architecture**: Hierarchical VQ-VAE with multi-scale temporal modeling
+- **Architecture**: Neural audio codec with multi-scale residual vector quantization (RVQ)
 - **Token structure**: 7 tokens per frame (1 coarse + 2 medium + 4 fine)
 - **Quality**: 24kHz sample rate, suitable for speech synthesis
 
