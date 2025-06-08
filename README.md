@@ -25,7 +25,7 @@ This project reimplements the Orpheus TTS pipeline in Rust, leveraging ONNX Runt
 
 ```bash
 # Clone the repository
-git clone https://github.com/YOUR_USERNAME/orpheus-onnx-rs.git
+git clone https://github.com/Sematre/orpheus-onnx-rs.git
 cd orpheus-onnx-rs
 
 # Download the SNAC model (52.6 MB)
