@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use axum::routing::post;
+use axum::routing::{get, post};
 use axum::Router;
 use tokio::net::TcpListener;
 use tower::ServiceBuilder;
@@ -62,6 +62,7 @@ async fn main() -> anyhow::Result<()> {
 
     // Build the router
     let app = Router::new()
+        .route("/health", get(health_check))
         .route("/v1/audio/speech", post(generate_speech))
         .route("/v1/files", post(upload_file))
         .layer(ServiceBuilder::new().layer(cors_layer))
@@ -78,6 +79,11 @@ async fn main() -> anyhow::Result<()> {
 
     info!("Server shutdown gracefully");
     Ok(())
+}
+
+/// Health check endpoint
+async fn health_check() -> &'static str {
+    "OK"
 }
 
 /// Initialize logging based on configuration
