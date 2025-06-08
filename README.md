@@ -1,6 +1,6 @@
 # Orpheus-ONNX-rs
 
-A high-performance Text-to-Speech server using ONNX for optimized inference. A Rust recreation of [Orpheus-FastAPI](https://github.com/Lex-au/Orpheus-FastAPI).
+A high-performance Text-to-Speech server using ONNX for optimized inference. A Rust reimplementation of [Orpheus-FastAPI](https://github.com/Lex-au/Orpheus-FastAPI).
 
 ## Overview
 
