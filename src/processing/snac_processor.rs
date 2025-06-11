@@ -86,9 +86,7 @@ pub struct SnacProcessor {
 
 impl SnacProcessor {
     /// Loads a SNAC decoder model from the specified path.
-    pub fn new(decoder_path: &PathBuf) -> Result<Self> {
-        let environment = Arc::new(Environment::builder().with_name("snac_decoder").build().map_err(SnacError::EnvironmentCreation)?);
-
+    pub fn new(decoder_path: &PathBuf, environment: Arc<Environment>) -> Result<Self> {
         let decoder_session = SessionBuilder::new(&environment)
             .map_err(SnacError::EnvironmentCreation)?
             .with_model_from_file(decoder_path)
@@ -336,7 +334,8 @@ mod tests {
         let decoder_path = PathBuf::from("path/to/snac_decoder.onnx");
 
         if decoder_path.exists() {
-            let processor = SnacProcessor::new(&decoder_path)?;
+            let onnx_environment = Environment::builder().with_name("snac_decoder").build().map_err(SnacError::EnvironmentCreation)?.into_arc();
+            let processor = SnacProcessor::new(&decoder_path, onnx_environment)?;
 
             let test_frame = AudioFrame {
                 codes_0: [100],
@@ -356,7 +355,9 @@ mod tests {
     async fn test_contextual_processor_context_management() -> Result<()> {
         let decoder_path = PathBuf::from("path/to/snac_decoder.onnx");
         if decoder_path.exists() {
-            let processor = Arc::new(SnacProcessor::new(&decoder_path)?);
+            let onnx_environment = Environment::builder().with_name("snac_decoder").build().map_err(SnacError::EnvironmentCreation)?.into_arc();
+            let processor = Arc::new(SnacProcessor::new(&decoder_path, onnx_environment)?);
+
             let contextual = ContextualFrameProcessor::new(processor);
 
             assert_eq!(contextual.context_size(), 0);

@@ -4,6 +4,7 @@ use std::time::Duration;
 
 use axum::routing::{get, post};
 use axum::Router;
+use ort::environment::Environment;
 use tokio::net::TcpListener;
 use tower::ServiceBuilder;
 use tower_http::cors::{AllowHeaders, AllowMethods, AllowOrigin, CorsLayer};
@@ -33,8 +34,15 @@ impl AppState {
         // Create HTTP client with no timeout
         let client = reqwest::Client::new();
 
+        // Create ONNX environment for SNAC processing
+        let onnx_environment = Environment::builder()
+            .with_name("snac_decoder")
+            .build()
+            .map_err(|e| anyhow::anyhow!("Failed to create ONNX environment: {e}"))?
+            .into_arc();
+
         // Load SNAC processor with configured path from audio config
-        let snac_processor = Arc::new(SnacProcessor::new(&config.audio.snac_decoder_path)?);
+        let snac_processor = Arc::new(SnacProcessor::new(&config.audio.snac_decoder_path, onnx_environment)?);
 
         Ok(Self {
             client,
