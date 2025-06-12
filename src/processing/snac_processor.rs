@@ -95,7 +95,7 @@ impl SnacProcessor {
                 source: e,
             })?;
 
-        info!("SNAC decoder loaded from: {:?}", decoder_path);
+        info!("SNAC decoder loaded from: {decoder_path:?}");
 
         Ok(SnacProcessor {
             decoder_session,

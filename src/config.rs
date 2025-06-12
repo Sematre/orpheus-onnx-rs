@@ -33,10 +33,10 @@ pub struct CorsConfig {
 
     #[serde(default)]
     pub allow_origins: Vec<String>,
-    
+
     #[serde(default)]
     pub allow_methods: Vec<String>,
-    
+
     #[serde(default)]
     pub allow_headers: Vec<String>,
 }
@@ -44,7 +44,7 @@ pub struct CorsConfig {
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct AudioConfig {
     pub snac_decoder_path: PathBuf,
-    
+
     #[serde(default)]
     pub execution_provider: OnnxExecutionProvider,
 }
@@ -128,16 +128,16 @@ pub struct ApiConfig {
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct ProviderConfig {
     pub api_url: String,
-    
+
     #[serde(default)]
     pub api_key: String,
-    
+
     #[serde(default = "default_timeout")]
     pub timeout_secs: u64,
-    
+
     #[serde(default = "default_retry_attempts")]
     pub retry_attempts: u32,
-    
+
     #[serde(default = "default_concurrent_requests")]
     pub concurrent_requests: u32,
 }
@@ -180,11 +180,11 @@ impl Config {
     /// Load configuration from a directory containing TOML files
     pub fn from_dir(dir_path: impl AsRef<Path>) -> Result<Self> {
         let dir_path = dir_path.as_ref();
-        
+
         if !dir_path.exists() {
             anyhow::bail!("Configuration directory not found: {:?}", dir_path);
         }
-        
+
         if !dir_path.is_dir() {
             anyhow::bail!("Path is not a directory: {:?}", dir_path);
         }
@@ -193,35 +193,28 @@ impl Config {
         let mut toml_files = std::fs::read_dir(dir_path)?
             .filter_map(|entry| entry.ok())
             .map(|entry| entry.path())
-            .filter(|path| {
-                path.extension()
-                    .and_then(|ext| ext.to_str())
-                    .map(|ext| ext.eq_ignore_ascii_case("toml"))
-                    .unwrap_or(false)
-            })
+            .filter(|path| path.extension().and_then(|ext| ext.to_str()).map(|ext| ext.eq_ignore_ascii_case("toml")).unwrap_or(false))
             .collect::<Vec<_>>();
-        
+
         toml_files.sort();
-        
+
         if toml_files.is_empty() {
             anyhow::bail!("No TOML files found in directory: {:?}", dir_path);
         }
 
         // Start with empty config content
         let mut merged_content = String::new();
-        
+
         // Read and merge all TOML files
         for file_path in &toml_files {
-            let file_content = std::fs::read_to_string(file_path)
-                .map_err(|e| anyhow::anyhow!("Failed to read {:?}: {}", file_path, e))?;
-            
+            let file_content = std::fs::read_to_string(file_path).map_err(|e| anyhow::anyhow!("Failed to read {:?}: {}", file_path, e))?;
+
             merged_content.push_str(&file_content);
             merged_content.push('\n');
         }
 
         // Parse the merged TOML content
-        let config: Config = toml::from_str(&merged_content)
-            .map_err(|e| anyhow::anyhow!("Failed to parse merged TOML configuration: {}", e))?;
+        let config: Config = toml::from_str(&merged_content).map_err(|e| anyhow::anyhow!("Failed to parse merged TOML configuration: {}", e))?;
 
         config.validate()?;
         Ok(config)
@@ -241,7 +234,8 @@ impl Config {
         }
 
         if let Ok(execution_provider) = std::env::var("TTS_EXECUTION_PROVIDER") {
-            config.audio.execution_provider = execution_provider.parse()
+            config.audio.execution_provider = execution_provider
+                .parse()
                 .map_err(|_| anyhow::anyhow!("Invalid execution provider: {}", execution_provider))?;
         }
 
@@ -271,7 +265,8 @@ impl Config {
         }
 
         if let Ok(execution_provider) = std::env::var("TTS_EXECUTION_PROVIDER") {
-            config.audio.execution_provider = execution_provider.parse()
+            config.audio.execution_provider = execution_provider
+                .parse()
                 .map_err(|_| anyhow::anyhow!("Invalid execution provider: {}", execution_provider))?;
         }
 

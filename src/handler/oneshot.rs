@@ -172,7 +172,7 @@ impl AudioStreamMetrics {
 pub async fn generate_speech(State(state): State<AppState>, Json(request): Json<SpeechRequest>) -> std::result::Result<Response, (StatusCode, Json<ErrorResponse>)> {
     // Validate request parameters
     if let Err(e) = request.validate() {
-        error!("Request validation failed: {}", e);
+        error!("Request validation failed: {e}");
         return Err((e.to_status_code(), Json(e.to_error_response())));
     }
 
@@ -189,7 +189,7 @@ pub async fn generate_speech(State(state): State<AppState>, Json(request): Json<
                 .header("X-Response-Format", "wav")
                 .body(axum::body::Body::from_stream(stream))
                 .map_err(|e| {
-                    error!("Failed to build response: {}", e);
+                    error!("Failed to build response: {e}");
                     (
                         StatusCode::INTERNAL_SERVER_ERROR,
                         Json(ErrorResponse {
@@ -204,7 +204,7 @@ pub async fn generate_speech(State(state): State<AppState>, Json(request): Json<
             Ok(response)
         }
         Err(e) => {
-            error!("Error generating speech: {}", e);
+            error!("Error generating speech: {e}");
             Err((e.to_status_code(), Json(e.to_error_response())))
         }
     }
@@ -220,7 +220,7 @@ async fn create_audio_stream(state: AppState, request: SpeechRequest) -> Result<
     let tx_clone = tx.clone();
     tokio::spawn(async move {
         if let Err(e) = generate_and_stream_audio(state, request, tx_clone).await {
-            error!("Error in audio generation task: {}", e);
+            error!("Error in audio generation task: {e}");
             // Convert our error to io::Error for channel compatibility
             let io_error = std::io::Error::other(format!("Audio generation failed: {}", e));
             let _ = tx.send(Err(io_error)).await;
@@ -295,10 +295,7 @@ async fn process_audio_frames(
             Err(AudioFrameError::TokenOutOfRange { token, index, computed_id, .. }) => {
                 // Token encoding errors are recoverable - log and continue
                 // This handles occasional bad tokens from LLM
-                warn!(
-                    "Ignoring invalid token {} at index {}: computed ID {} is out of valid range, continuing with next token",
-                    token, index, computed_id
-                );
+                debug!("Ignoring invalid token {token} at index {index}: computed ID {computed_id} is out of valid range, continuing with next token",);
 
                 continue;
             }
