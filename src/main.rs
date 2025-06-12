@@ -35,7 +35,9 @@ impl AppState {
         let client = reqwest::Client::new();
 
         // Create ONNX environment for SNAC processing
+        info!("Creating ONNX environment with execution provider: {:?}", config.audio.execution_provider);
         let onnx_environment = Environment::builder()
+            .with_execution_providers(&[config.audio.execution_provider.to_ort_provider()])
             .with_name("snac_decoder")
             .build()
             .map_err(|e| anyhow::anyhow!("Failed to create ONNX environment: {e}"))?
@@ -66,8 +68,6 @@ async fn main() -> anyhow::Result<()> {
         "Starting TTS service with config from: \"{}\"",
         config_dir_path.canonicalize()?.to_str().unwrap_or(&config_dir)
     );
-
-    println!("{config:#?}");
 
     // Create app state
     let state = AppState::from_config(config.clone())?;

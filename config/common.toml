@@ -9,6 +9,9 @@ allow_headers = ["Content-Type", "Authorization"]
 
 [audio]
 snac_decoder_path = "./models/snac_decoder.onnx"
+# Execution provider for ONNX inference
+# Options: cpu, cuda, tensorrt, directml, coreml, rocm
+execution_provider = "cpu"
 
 [streaming]
 channel_buffer_size = 100
@@ -31,7 +34,7 @@ retry_attempts = 3
 concurrent_requests = 1
 
 [providers.ollama]
-api_url = "http://localhost:11434/api/generate"
+api_url = "http://localhost:11434/v1/completions"
 api_key = "dummy-api-key"
 timeout_secs = 30
 retry_attempts = 3

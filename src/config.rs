@@ -1,7 +1,9 @@
 use anyhow::Result;
+use ort::ExecutionProvider;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::str::FromStr;
 
 /// Main configuration structure
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -41,6 +43,52 @@ pub struct CorsConfig {
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct AudioConfig {
     pub snac_decoder_path: PathBuf,
+    
+    #[serde(default)]
+    pub execution_provider: OnnxExecutionProvider,
+}
+
+/// ONNX execution provider options
+#[derive(Debug, Deserialize, Serialize, Clone, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum OnnxExecutionProvider {
+    #[default]
+    Cpu,
+    Cuda,
+    TensorRT,
+    DirectML,
+    CoreML,
+    ROCm,
+}
+
+impl OnnxExecutionProvider {
+    /// Convert to ort::ExecutionProvider
+    pub fn to_ort_provider(&self) -> ExecutionProvider {
+        match self {
+            OnnxExecutionProvider::Cpu => ExecutionProvider::CPU(Default::default()),
+            OnnxExecutionProvider::Cuda => ExecutionProvider::CUDA(Default::default()),
+            OnnxExecutionProvider::TensorRT => ExecutionProvider::TensorRT(Default::default()),
+            OnnxExecutionProvider::DirectML => ExecutionProvider::DirectML(Default::default()),
+            OnnxExecutionProvider::CoreML => ExecutionProvider::CoreML(Default::default()),
+            OnnxExecutionProvider::ROCm => ExecutionProvider::ROCm(Default::default()),
+        }
+    }
+}
+
+impl FromStr for OnnxExecutionProvider {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        match s.to_lowercase().as_str() {
+            "cpu" => Ok(OnnxExecutionProvider::Cpu),
+            "cuda" => Ok(OnnxExecutionProvider::Cuda),
+            "tensorrt" => Ok(OnnxExecutionProvider::TensorRT),
+            "directml" => Ok(OnnxExecutionProvider::DirectML),
+            "coreml" => Ok(OnnxExecutionProvider::CoreML),
+            "rocm" => Ok(OnnxExecutionProvider::ROCm),
+            _ => Err(anyhow::anyhow!("Invalid execution provider: {}. Valid options are: cpu, cuda, tensorrt, directml, coreml, rocm", s)),
+        }
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -176,6 +224,11 @@ impl Config {
             config.logging.level = log_level;
         }
 
+        if let Ok(execution_provider) = std::env::var("TTS_EXECUTION_PROVIDER") {
+            config.audio.execution_provider = execution_provider.parse()
+                .map_err(|_| anyhow::anyhow!("Invalid execution provider: {}", execution_provider))?;
+        }
+
         Ok(config)
     }
 
@@ -199,6 +252,11 @@ impl Config {
 
         if let Ok(log_level) = std::env::var("TTS_LOG_LEVEL") {
             config.logging.level = log_level;
+        }
+
+        if let Ok(execution_provider) = std::env::var("TTS_EXECUTION_PROVIDER") {
+            config.audio.execution_provider = execution_provider.parse()
+                .map_err(|_| anyhow::anyhow!("Invalid execution provider: {}", execution_provider))?;
         }
 
         Ok(config)
