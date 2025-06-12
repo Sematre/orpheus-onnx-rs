@@ -2,7 +2,9 @@
 [models.orpheus-en]
 provider = "local-lm-studio"
 id = "lex-au/Orpheus-3b-FT-Q8_0.gguf"
-temperature = 0.7
+temperature = 0.6
+top_p = 0.8
+repetition_penalty = 1.3
 max_context_length = 8192
 stop_sequence = "<|begin_of_text|>"
 description = "Orpheus 3B English TTS model"
