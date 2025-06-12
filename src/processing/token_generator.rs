@@ -9,7 +9,7 @@ use serde_json::{json, Value};
 use std::pin::Pin;
 use std::task::{Context, Poll};
 use thiserror::Error;
-use tracing::debug;
+use tracing::{debug, info};
 
 // Default to local LM Studio API endpoint
 const DEFAULT_API_URL: &str = "http://127.0.0.1:1234/v1/completions";
@@ -146,6 +146,12 @@ impl TokenNumberStream {
             return LineResult::Continue; // Skip malformed JSON, don't fail stream
         };
 
+        if let Some((prompt_tokens, completion_tokens)) = Self::extract_token_count_from_json(&data) {
+            info!("[TOKENS] prompt_tokens:     {prompt_tokens}");
+            info!("[TOKENS] completion_tokens: {completion_tokens}");
+            info!("[TOKENS] total:             {}", prompt_tokens + completion_tokens);
+        }
+
         match self.extract_text_from_json(&data) {
             Some(text) => self.extract_token_from_text(text),
             None => LineResult::Continue,
@@ -156,6 +162,15 @@ impl TokenNumberStream {
     fn extract_text_from_json<'a>(&self, data: &'a Value) -> Option<&'a str> {
         // Navigate JSON: {"choices": [{"text": "..."}]}
         data.get("choices")?.as_array()?.first()?.get("text")?.as_str()
+    }
+
+    fn extract_token_count_from_json(data: &Value) -> Option<(u64, u64)> {
+        let usage = data.get("usage")?;
+
+        let prompt_tokens = usage.get("prompt_tokens")?.as_u64().filter(|&x| x > 0);
+        let completion_tokens = usage.get("completion_tokens")?.as_u64().filter(|&x| x > 0);
+
+        prompt_tokens.zip(completion_tokens)
     }
 
     /// Extract custom token number from text using regex.
@@ -253,6 +268,9 @@ impl TokenGenerator {
             "prompt": prompt,
             "stream": true,  // Enable SSE streaming
             "model": self.config.model,
+            "stream_options": {
+                "include_usage": true,
+            },
             "stop": self.config.stop_sequence,
         });
 
