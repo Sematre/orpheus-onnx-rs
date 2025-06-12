@@ -2,6 +2,7 @@ use anyhow::Result;
 use ort::ExecutionProvider;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fmt;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
@@ -86,7 +87,22 @@ impl FromStr for OnnxExecutionProvider {
             "directml" => Ok(OnnxExecutionProvider::DirectML),
             "coreml" => Ok(OnnxExecutionProvider::CoreML),
             "rocm" => Ok(OnnxExecutionProvider::ROCm),
-            _ => Err(anyhow::anyhow!("Invalid execution provider: {}. Valid options are: cpu, cuda, tensorrt, directml, coreml, rocm", s)),
+            _ => Err(anyhow::anyhow!(
+                "Invalid execution provider: {s}. Valid options are: cpu, cuda, tensorrt, directml, coreml, rocm"
+            )),
+        }
+    }
+}
+
+impl fmt::Display for OnnxExecutionProvider {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            OnnxExecutionProvider::Cpu => write!(f, "CPU"),
+            OnnxExecutionProvider::Cuda => write!(f, "CUDA"),
+            OnnxExecutionProvider::TensorRT => write!(f, "TensorRT"),
+            OnnxExecutionProvider::DirectML => write!(f, "DirectML"),
+            OnnxExecutionProvider::CoreML => write!(f, "CoreML"),
+            OnnxExecutionProvider::ROCm => write!(f, "ROCm"),
         }
     }
 }
