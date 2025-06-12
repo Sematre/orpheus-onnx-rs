@@ -1,17 +1,19 @@
+use std::collections::HashMap;
+use std::iter::repeat;
 use std::path::Path;
 use std::sync::Arc;
-use std::time::Duration;
 
 use axum::routing::{get, post};
 use axum::Router;
+use itertools::Itertools;
 use ort::environment::Environment;
 use tokio::net::TcpListener;
 use tower::ServiceBuilder;
 use tower_http::cors::{AllowHeaders, AllowMethods, AllowOrigin, CorsLayer};
-use tracing::info;
+use tracing::{info, warn};
 use tracing_subscriber::EnvFilter;
 
-use crate::config::Config;
+use crate::config::{Config, ModelConfig};
 use crate::handler::batch::upload::upload_file;
 use crate::handler::oneshot::generate_speech;
 use crate::processing::snac_processor::SnacProcessor;
@@ -27,6 +29,7 @@ struct AppState {
     client: reqwest::Client,
     snac_processor: Arc<SnacProcessor>,
     config: Arc<Config>,
+    voice_to_model: HashMap<String, Arc<ModelConfig>>,
 }
 
 impl AppState {
@@ -46,11 +49,60 @@ impl AppState {
         // Load SNAC processor with configured path from audio config
         let snac_processor = Arc::new(SnacProcessor::new(&config.audio.snac_decoder_path, onnx_environment)?);
 
+        let voice_to_model = Self::build_voice_to_model_cache(&config);
+
         Ok(Self {
             client,
             snac_processor,
             config: Arc::new(config),
+            voice_to_model,
         })
+    }
+
+    /// Builds a cache mapping short name and fully qualified voice identifiers to their model configurations.
+    fn build_voice_to_model_cache(config: &Config) -> HashMap<String, Arc<ModelConfig>> {
+        type VoiceId = String;
+        type ModelId = String;
+
+        // We need to detect voice name collisions across models to determine
+        // which voices can be referenced by their short name alone.
+        // This allows users to use "alice" instead of "model1/alice" when unambiguous.
+        let voices_by_model: HashMap<VoiceId, Vec<ModelId>> = config
+            .models
+            .iter()
+            .flat_map(|(model_id, model_config)| model_config.voices.keys().cloned().zip(repeat(model_id.clone())))
+            .into_group_map();
+
+        // Alert users about naming conflicts so they know when they must use
+        // the fully qualified "model/voice" syntax to avoid ambiguity
+        for (voice, model_ids) in &voices_by_model {
+            if model_ids.len() > 1 {
+                warn!("Voice '{voice}' exists more than once in these models: {}", model_ids.join(", "));
+            }
+        }
+
+        let mut voice_to_model: HashMap<VoiceId, Arc<ModelConfig>> = HashMap::new();
+        for (model_id, model_config) in &config.models {
+            // Use Arc to avoid cloning the entire config for each voice mapping.
+            // Multiple voice IDs will point to the same model configuration.
+            let shared_config = Arc::new(model_config.clone());
+
+            for voice in model_config.voices.keys() {
+                // Always provide the explicit "model/voice" syntax as a failsafe.
+                // This guarantees users can always disambiguate voices, even if
+                // multiple models have a voice with the same name.
+                voice_to_model.insert(format!("{model_id}/{voice}"), shared_config.clone());
+
+                // For user convenience, also map the bare voice name IF it's unique.
+                // This allows "alice" to work when there's only one alice across all models,
+                // avoiding the need to type "gpt/alice" every time.
+                if voices_by_model.get(voice).map(Vec::len).unwrap_or(0) == 1 {
+                    voice_to_model.insert(voice.to_owned(), shared_config.clone());
+                }
+            }
+        }
+
+        voice_to_model
     }
 }
 

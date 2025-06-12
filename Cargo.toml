@@ -42,3 +42,4 @@ tracing-subscriber = { version = "0.3", features = [
 regex = "1.11"
 uuid = { version = "1.17", features = ["v4"] }
 toml = "0.8.23"
+itertools = "0.14.0"
